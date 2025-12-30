@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeVI - Results</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="logo">
+                <a href="index.html" class="logo-link">CodeVI</a>
+            </h1>
+            <p class="tagline">Search Results</p>
+        </header>
+
+        <main class="main-content">
+            <div class="query-display">
+                <p class="query-text">Query: <strong id="query-display">Loading...</strong></p>
+                <a href="index.html" class="new-search-link">← New Search</a>
+            </div>
+
+            <!-- Results View -->
+            <div class="view-content active" id="results-view">
+                <div class="results-container" id="results-container">
+                    <div class="loading" id="loading">Searching...</div>
+                </div>
+            </div>
+
+            <!-- Related Files Section -->
+            <div class="view-content" id="relations-view">
+                <div class="relations-header-bar">
+                    <button class="back-btn" onclick="showResultsView()">← Back to Results</button>
+                </div>
+                <div class="relations-container" id="relations-container">
+                    <div class="empty-state">
+                        <h3>No related files yet</h3>
+                        <p>Select a result to explore its connections.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Your app scripts -->
+    <script src="results.js"></script>
+    <script src="relations_view.js"></script>
+</body>
+</html>
+

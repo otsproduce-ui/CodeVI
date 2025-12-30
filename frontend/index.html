@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeVI - Ask</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-logo">CodeVI</h1>
+                <p class="app-tagline">Ask your code anything</p>
+            </div>
+        </header>
+
+        <main class="ask-page">
+            <div class="ask-content">
+                <!-- Main Search Input -->
+                <div class="search-container">
+                    <form id="search-form" class="search-form">
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                id="query-input" 
+                                class="query-input" 
+                                placeholder="Where's the login button handled?"
+                                autocomplete="off"
+                                required
+                            />
+                            <button type="submit" class="search-button" id="search-btn" aria-label="Search">
+                                <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="m15 15-3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Prompt Chips -->
+                <div class="prompt-chips" id="prompt-chips">
+                    <button class="prompt-chip" data-query="Where is authentication handled?">
+                        Where is authentication handled?
+                    </button>
+                    <button class="prompt-chip" data-query="Show me the API error handling">
+                        Show me the API error handling
+                    </button>
+                    <button class="prompt-chip" data-query="How does user login work?">
+                        How does user login work?
+                    </button>
+                    <button class="prompt-chip" data-query="Find database connection code">
+                        Find database connection code
+                    </button>
+                </div>
+
+                <!-- Recent Questions -->
+                <div class="recent-section" id="recent-section" style="display: none;">
+                    <h3 class="recent-heading">Recent questions</h3>
+                    <div class="recent-list" id="recent-list"></div>
+                </div>
+
+                <!-- Status Message -->
+                <div class="status-banner" id="status-banner" style="display: none;">
+                    <div class="status-content" id="status-content"></div>
+                </div>
+
+                <!-- Setup Section (collapsible) -->
+                <details class="setup-section" id="setup-section">
+                    <summary class="setup-summary">
+                        <span class="setup-icon">⚙️</span>
+                        <span>Setup codebase</span>
+                    </summary>
+                    <div class="setup-content">
+                        <p class="setup-help">First, scan your codebase to index it for search.</p>
+                        <form id="scan-form" class="scan-form">
+                            <div class="scan-input-group">
+                                <input 
+                                    type="text" 
+                                    id="root-path-input" 
+                                    class="path-input" 
+                                    placeholder="C:\path\to\your\codebase"
+                                    value="."
+                                />
+                                <button type="submit" class="scan-button" id="scan-btn">
+                                    <span class="button-text">Scan</span>
+                                    <span class="button-loader" style="display: none;">
+                                        <svg class="spinner" width="16" height="16" viewBox="0 0 16 16">
+                                            <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="43.98" stroke-dashoffset="10.99">
+                                                <animate attributeName="stroke-dasharray" values="0 43.98;21.99 21.99;0 43.98;0 43.98" dur="1.5s" repeatCount="indefinite"/>
+                                                <animate attributeName="stroke-dashoffset" values="0;-10.99;-43.98;-43.98" dur="1.5s" repeatCount="indefinite"/>
+                                            </circle>
+                                        </svg>
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

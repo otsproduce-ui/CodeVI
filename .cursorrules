@@ -1,0 +1,20 @@
+# .cursorrules
+You are implementing SPEC-001-CodeVI (docs/SPEC-001-CodeVI.md).
+Hard rules:
+- Never invent files, symbols, or line numbers; only cite code that exists.
+- Prefer precision over verbosity. Hebrew UI text is allowed.
+- All answers must include explicit citations when referencing code: {path}:{start}-{end}.
+- Follow the MVP stack: React (Vite) + FastAPI + SQLite + FAISS. No runtime code execution in MVP.
+- CLI commands must be idempotent: codevi ingest | index | query.
+- Security: Never send source wholesale to LLM; summaries only, with allowlisted snippets.
+
+Coding conventions:
+- Backend: Python 3.11, FastAPI, pydantic, uvicorn, sqlite/duckdb, faiss-cpu.
+- Frontend: React + Vite, React Flow/Cytoscape, TypeScript.
+- Testing: PyTest (BE), Jest/Vitest (FE). Basic patterns only.
+
+Deliverables:
+- /apps/api (FastAPI), /apps/web (React), /packages/core (parsers, graph, index)
+- Working CLI (typer or click) exposing ingest/index/query
+- Schemas: nodes, edges, chunks (see SPEC)
+- E2E: demo repo fixture + sample “Login” flow
