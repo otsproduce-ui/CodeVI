@@ -1,116 +1,60 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { getFileContent } from "@/lib/api";
 
 interface GraphNode {
   id: string;
   label: string;
-  type: "frontend" | "backend" | "component" | "api";
-  code: string;
+  type: "frontend" | "backend" | "component" | "api" | "file" | string;
+  code?: string;
+  file_path?: string;
+  context?: string;
+  metadata?: Record<string, any>;
 }
 
 interface GraphLink {
   source: string;
   target: string;
+  type?: string;
+  label?: string;
 }
 
 interface GraphVisualizationProps {
   className?: string;
+  nodes?: GraphNode[];
+  edges?: GraphLink[];
 }
 
-// Mock data with code snippets
-const mockNodes: GraphNode[] = [
-  { 
-    id: "1", 
-    label: "App.tsx", 
-    type: "frontend",
-    code: `import { AuthProvider } from './AuthProvider'
-import { Dashboard } from './Dashboard'
-
-export function App() {
-  return (
-    <AuthProvider>
-      <Dashboard />
-    </AuthProvider>
-  )
-}`
-  },
-  { 
-    id: "2", 
-    label: "AuthProvider", 
-    type: "component",
-    code: `export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+// Helper function to determine node type from file path and context
+function getNodeType(
+  filePath: string | undefined, 
+  label: string, 
+  context?: string,
+  nodeType?: string
+): "frontend" | "backend" | "component" | "api" | "file" {
+  // Use context from backend if available
+  if (context === "frontend") return "frontend";
+  if (context === "backend") return "backend";
   
-  return (
-    <AuthContext.Provider value={{ user }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}`
-  },
-  { 
-    id: "3", 
-    label: "api/auth", 
-    type: "api",
-    code: `export async function login(email, password) {
-  const response = await fetch('/api/auth', {
-    method: 'POST',
-    body: JSON.stringify({ email, password })
-  })
-  return response.json()
-}`
-  },
-  { 
-    id: "4", 
-    label: "UserService", 
-    type: "backend",
-    code: `class UserService {
-  async authenticate(credentials) {
-    const user = await db.users.findOne({
-      email: credentials.email
-    })
-    return this.verifyPassword(user, credentials)
+  // Use node type from backend
+  if (nodeType === "route" || nodeType === "endpoint") return "api";
+  if (nodeType === "function" || nodeType === "class") {
+    // Check if it's a component based on file path
+    if (filePath && (filePath.includes('component') || filePath.includes('hook'))) {
+      return "component";
+    }
   }
-}`
-  },
-  { 
-    id: "5", 
-    label: "Dashboard", 
-    type: "frontend",
-    code: `export function Dashboard() {
-  const { user } = useAuth()
   
-  return (
-    <div className="dashboard">
-      <h1>Welcome, {user.name}</h1>
-      <Stats />
-    </div>
-  )
-}`
-  },
-  { 
-    id: "6", 
-    label: "useAuth", 
-    type: "component",
-    code: `export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
-}`
-  },
-];
-
-const mockLinks: GraphLink[] = [
-  { source: "1", target: "2" },
-  { source: "2", target: "3" },
-  { source: "3", target: "4" },
-  { source: "1", target: "5" },
-  { source: "5", target: "6" },
-  { source: "6", target: "2" },
-];
+  // Fallback to file path analysis
+  if (!filePath) return "file";
+  const path = filePath.toLowerCase();
+  if (path.includes('.tsx') || path.includes('.jsx') || path.includes('.html') || path.includes('.js')) return "frontend";
+  if (path.includes('.py') || path.includes('routes') || path.includes('api')) return "backend";
+  if (path.includes('component') || path.includes('hook')) return "component";
+  if (path.includes('api') || path.includes('endpoint')) return "api";
+  return "file";
+}
 
 const nodeColors = {
   frontend: { 
@@ -143,11 +87,38 @@ const nodeColors = {
   },
 };
 
-export function GraphVisualization({ className }: GraphVisualizationProps) {
+export function GraphVisualization({ className, nodes, edges }: GraphVisualizationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [expandedNode, setExpandedNode] = useState<string | null>(null);
   const [nodePositions, setNodePositions] = useState<{ [key: string]: { x: number; y: number } }>({});
+  const [nodeCodes, setNodeCodes] = useState<{ [key: string]: string }>({});
+  const [loadingCodes, setLoadingCodes] = useState<Set<string>>(new Set());
+
+  // Use provided nodes/edges or fallback to empty arrays
+  const graphNodes: GraphNode[] = nodes || [];
+  const graphLinks: GraphLink[] = edges || [];
+
+  // Load code content for nodes when needed
+  const loadNodeCode = async (node: GraphNode) => {
+    if (nodeCodes[node.id] || loadingCodes.has(node.id)) return;
+    if (!node.file_path) return;
+
+    setLoadingCodes(prev => new Set(prev).add(node.id));
+    try {
+      const code = await getFileContent(node.file_path);
+      setNodeCodes(prev => ({ ...prev, [node.id]: code }));
+    } catch (err) {
+      console.error(`Failed to load code for ${node.file_path}:`, err);
+      setNodeCodes(prev => ({ ...prev, [node.id]: node.code || "Code not available" }));
+    } finally {
+      setLoadingCodes(prev => {
+        const next = new Set(prev);
+        next.delete(node.id);
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     const updatePositions = () => {
@@ -160,8 +131,8 @@ export function GraphVisualization({ className }: GraphVisualizationProps) {
       const radius = Math.min(centerX, centerY) * 0.55;
 
       const positions: { [key: string]: { x: number; y: number } } = {};
-      mockNodes.forEach((node, i) => {
-        const angle = (i / mockNodes.length) * Math.PI * 2 - Math.PI / 2;
+      graphNodes.forEach((node, i) => {
+        const angle = (i / graphNodes.length) * Math.PI * 2 - Math.PI / 2;
         positions[node.id] = {
           x: centerX + Math.cos(angle) * radius,
           y: centerY + Math.sin(angle) * radius,
@@ -173,7 +144,16 @@ export function GraphVisualization({ className }: GraphVisualizationProps) {
     updatePositions();
     window.addEventListener("resize", updatePositions);
     return () => window.removeEventListener("resize", updatePositions);
-  }, []);
+  }, [graphNodes]);
+
+  // Load code for visible nodes
+  useEffect(() => {
+    graphNodes.forEach(node => {
+      if (node.file_path && !nodeCodes[node.id] && !node.code) {
+        loadNodeCode(node);
+      }
+    });
+  }, [graphNodes]);
 
   const handleNodeClick = (nodeId: string) => {
     setExpandedNode(expandedNode === nodeId ? null : nodeId);
@@ -194,24 +174,28 @@ export function GraphVisualization({ className }: GraphVisualizationProps) {
         style={{ zIndex: 0 }}
       >
         <defs>
-          {mockLinks.map((link, i) => {
-            const sourceNode = mockNodes.find(n => n.id === link.source);
-            const targetNode = mockNodes.find(n => n.id === link.target);
+          {graphLinks.map((link, i) => {
+            const sourceNode = graphNodes.find(n => n.id === link.source);
+            const targetNode = graphNodes.find(n => n.id === link.target);
             if (!sourceNode || !targetNode) return null;
+            const sourceContext = sourceNode.context || (sourceNode.metadata?.context as string);
+            const targetContext = targetNode.context || (targetNode.metadata?.context as string);
+            const sourceType = getNodeType(sourceNode.file_path, sourceNode.label, sourceContext, sourceNode.type);
+            const targetType = getNodeType(targetNode.file_path, targetNode.label, targetContext, targetNode.type);
             return (
               <linearGradient 
                 key={`gradient-${i}`} 
                 id={`link-gradient-${i}`}
                 x1="0%" y1="0%" x2="100%" y2="0%"
               >
-                <stop offset="0%" stopColor={nodeColors[sourceNode.type].line} stopOpacity="0.4" />
-                <stop offset="100%" stopColor={nodeColors[targetNode.type].line} stopOpacity="0.4" />
+                <stop offset="0%" stopColor={nodeColors[sourceType].line} stopOpacity="0.4" />
+                <stop offset="100%" stopColor={nodeColors[targetType].line} stopOpacity="0.4" />
               </linearGradient>
             );
           })}
         </defs>
         
-        {mockLinks.map((link, i) => {
+        {graphLinks.map((link, i) => {
           const sourcePos = nodePositions[link.source];
           const targetPos = nodePositions[link.target];
           if (!sourcePos || !targetPos) return null;
@@ -232,12 +216,19 @@ export function GraphVisualization({ className }: GraphVisualizationProps) {
       </svg>
 
       {/* Nodes as code cards */}
-      {mockNodes.map((node) => {
+      {graphNodes.map((node) => {
         const pos = nodePositions[node.id];
         if (!pos) return null;
 
         const isExpanded = expandedNode === node.id;
-        const colors = nodeColors[node.type];
+        // Use context from backend if available (can be in node.context or node.metadata.context)
+        const context = node.context || (node.metadata?.context as string);
+        const nodeType = getNodeType(node.file_path, node.label, context, node.type);
+        const colors = nodeColors[nodeType];
+        
+        // Get code content - prefer loaded code, then node.code, then placeholder
+        const codeContent = nodeCodes[node.id] || node.code || (node.file_path ? "Loading code..." : "No code available");
+        const isLoading = loadingCodes.has(node.id) && !nodeCodes[node.id];
 
         return (
           <div
@@ -271,10 +262,10 @@ export function GraphVisualization({ className }: GraphVisualizationProps) {
             )}>
               <div className={cn("w-2.5 h-2.5 rounded-full", colors.dot)} />
               <span className="text-xs font-semibold text-foreground truncate flex-1">
-                {node.label}
+                {node.label || node.file_path || node.id}
               </span>
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted/30">
-                {node.type}
+                {nodeType}
               </span>
               {isExpanded && (
                 <button 
@@ -291,10 +282,31 @@ export function GraphVisualization({ className }: GraphVisualizationProps) {
               "p-3 font-mono text-[11px] leading-relaxed overflow-hidden relative",
               isExpanded && "overflow-y-auto max-h-[240px]"
             )}>
-              <pre className="text-foreground/90 whitespace-pre-wrap font-medium">
-                <code className="text-foreground/90">{getCodePreview(node.code, isExpanded)}</code>
-              </pre>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="text-xs text-muted-foreground">Loading code...</div>
+                </div>
+              ) : (
+                <pre className="text-foreground/90 whitespace-pre-wrap font-medium">
+                  <code className="text-foreground/90">{getCodePreview(codeContent, isExpanded)}</code>
+                </pre>
+              )}
             </div>
+            
+            {/* Load code on expand if not already loaded */}
+            {isExpanded && node.file_path && !nodeCodes[node.id] && !node.code && !loadingCodes.has(node.id) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-xl">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    loadNodeCode(node);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm hover:bg-primary/90"
+                >
+                  Load Code
+                </button>
+              </div>
+            )}
 
             {/* Expand hint - floating above the card */}
             {!isExpanded && (

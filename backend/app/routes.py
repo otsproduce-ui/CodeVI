@@ -113,7 +113,8 @@ def scan():
         
         return jsonify({
             "status": "success",
-            "files_indexed": search_service.file_count(),
+            "count": search_service.file_count(),  # Frontend expects 'count'
+            "files_indexed": search_service.file_count(),  # Keep for backward compatibility
             "semantic_indexed": semantic_indexed,
             "semantic_snippets": semantic_snippets,
             "message": message
@@ -319,7 +320,7 @@ def hybrid_search_pipeline():
         return jsonify({"error": str(e)}), 500
 
 
-@routes_bp.route("/flow_graph", methods=["POST"])
+@routes_bp.route("/flow_graph", methods=["GET", "POST"])
 def flow_graph():
     """Build a complete flow graph for a query - returns actual nodes/edges structure"""
     if not search_service or not graph_service or not graph_builder:
@@ -328,11 +329,13 @@ def flow_graph():
     if not search_service.is_indexed():
         return jsonify({"error": "Codebase not indexed. Call /scan first."}), 400
     
-    data = request.get_json()
-    if not data or "query" not in data:
-        return jsonify({"error": "query is required"}), 400
+    # Support both GET (query param) and POST (JSON body)
+    if request.method == "GET":
+        query = request.args.get("query", "").strip()
+    else:
+        data = request.get_json() or {}
+        query = data.get("query", "").strip()
     
-    query = data.get("query", "").strip()
     if not query:
         return jsonify({"error": "Query cannot be empty"}), 400
     

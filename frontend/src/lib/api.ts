@@ -22,8 +22,10 @@ export interface SearchResult {
 export interface GraphNode {
   id: string;
   label: string;
-  type: "frontend" | "backend" | "component" | "api" | "file";
+  type: "frontend" | "backend" | "component" | "api" | "file" | string;
   file_path?: string;
+  context?: string;
+  code?: string;
   metadata?: Record<string, any>;
 }
 
