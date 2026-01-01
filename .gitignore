@@ -26,3 +26,36 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Frontend build
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Backend
+backend/index.pkl
+backend/semantic_index.pkl
+backend/models/*/pytorch_model.bin
+backend/models/*/*.bin
+
+# Large model files (use Git LFS if needed)
+*.pkl
+*.bin
+*.safetensors
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
