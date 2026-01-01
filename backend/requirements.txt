@@ -5,4 +5,7 @@ sentence-transformers>=2.2.0
 faiss-cpu>=1.7.4
 openai>=1.0.0
 numpy>=1.24.0
+tree-sitter-languages>=1.0.0
+tree-sitter>=0.20.0
+beautifulsoup4>=4.12.0
 
